@@ -1,0 +1,571 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Critical Care to Blood Draw Interval</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Palette sampled from the TSANZ website: green #046a38, gold #d1a14a, near-black #151515,
+   page grey #efefef, mint #c0d9cd, cream #f6eed9, notice yellow #fff3cd. */
+:root {
+  --bg: #efefef;
+  --surface: #ffffff;
+  --fg: #151515;
+  --muted: #5b6165;
+  --line: #d6d9d7;
+  --dash: #046a38;
+  --accent: #046a38;
+  --accent-fg: #ffffff;
+  --band: #046a38;
+  --band-fg: #ffffff;
+  --gold: #d1a14a;
+  --gold-fg: #151515;
+  --mint: #c0d9cd;
+  --notice-bg: #fff3cd;
+  --notice-fg: #5c4708;
+  --danger: #b3261e;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1311; --surface: #18201c; --fg: #ecf1ed; --muted: #9aa7a0; --line: #2e3a34;
+    --dash: #2f9a62; --accent: #3dbb7d; --accent-fg: #04281a;
+    --mint: #1f3a2d; --notice-bg: #3a3114; --notice-fg: #f1deaa; --danger: #ff8a80;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1311; --surface: #18201c; --fg: #ecf1ed; --muted: #9aa7a0; --line: #2e3a34;
+  --dash: #2f9a62; --accent: #3dbb7d; --accent-fg: #04281a;
+  --mint: #1f3a2d; --notice-bg: #3a3114; --notice-fg: #f1deaa; --danger: #ff8a80;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 32px 48px;
+}
+main { max-width: 480px; margin: 0 auto; }
+h1 { font-size: 1.5rem; margin: 0 0 20px; color: var(--accent); }
+
+.tabs { display: flex; border-bottom: 1px solid var(--line); margin-bottom: 20px; }
+.tab {
+  background: none; border: 0; border-bottom: 3px solid transparent;
+  color: var(--muted); font: inherit; font-weight: 600;
+  padding: 8px 14px; margin-bottom: -1px; cursor: pointer;
+}
+.tab[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--gold); }
+.tab:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.row { display: flex; gap: 16px; flex-wrap: wrap; }
+.col { flex: 1 1 140px; min-width: 0; }
+label { display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 4px; }
+input {
+  width: 100%;
+  font: 1.5rem var(--mono);
+  padding: 8px 10px;
+  border: 1.5px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--fg);
+  font-variant-numeric: tabular-nums;
+}
+input[type="datetime-local"] { font-size: 1.1rem; }
+input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+input.bad { border-color: var(--danger); }
+.hint { font-size: 0.8rem; color: var(--muted); margin: 4px 0 0; }
+.stack { display: flex; flex-direction: column; gap: 16px; }
+[hidden] { display: none !important; }
+
+.result { margin: 20px 0 0; font-size: 1.1rem; min-height: 1.6em; }
+.result.err { color: var(--danger); font-size: 0.95rem; }
+.box { --pad: 20px; background: var(--surface); border-radius: 6px; padding: var(--pad); overflow: hidden; }
+.box + .box { margin-top: 20px; }
+.box h2 {
+  font-size: 1.2rem; font-weight: 500; margin: calc(var(--pad) * -1) calc(var(--pad) * -1) var(--pad);
+  padding: 14px var(--pad); background: var(--band); color: var(--band-fg);
+}
+@media (max-width: 480px) { .box { --pad: 16px; } }
+
+.icon-btn {
+  display: block; width: 48px; height: 48px; padding: 0;
+  border: 1.5px solid var(--fg); border-radius: 12px;
+  background: var(--surface); color: var(--fg); cursor: pointer;
+}
+.icon-btn svg { display: block; width: 28px; height: 28px; margin: auto; }
+.icon-btn:hover:not([aria-pressed="true"]):not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.icon-btn:disabled { opacity: 0.3; cursor: not-allowed; border-color: var(--line); color: var(--muted); }
+/* Off set: dark icon on light. On set: the same icons inverted, light icon on dark. */
+.icon-btn .on { display: none; color: var(--surface); }
+.icon-btn .off { display: block; }
+.icon-btn[aria-pressed="true"] { background: var(--fg); }
+.icon-btn[aria-pressed="true"] .on { display: block; }
+.icon-btn[aria-pressed="true"] .off { display: none; }
+.seg-wrap { display: flex; align-items: center; gap: 12px; margin: 0 0 14px; flex-wrap: wrap; }
+.seg-label { font-weight: 600; }
+.seg { display: inline-flex; border: 2px solid var(--accent); border-radius: 10px; overflow: hidden; }
+.seg button { font: inherit; padding: 8px 18px; min-height: 40px; border: 0; background: var(--surface); color: var(--accent); cursor: pointer; }
+.seg button + button { border-left: 2px solid var(--accent); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); }
+.seg button:disabled { opacity: .45; cursor: not-allowed; }
+.seg button:focus-visible { outline: 3px solid var(--gold); outline-offset: -3px; }
+.pickgrid { display: flex; flex-wrap: wrap; gap: 10px; margin: 0; }
+.picktext { margin: 12px 0 0; min-height: 3em; overflow-wrap: anywhere; }
+.picktext.empty { color: var(--muted); }
+.rates { --muted: color-mix(in srgb, var(--fg) 78%, var(--mint)); margin-top: 16px; padding: 14px 16px; background: var(--mint); border-radius: 4px; }
+.rates .head { font-size: 0.9rem; margin: 0 0 12px; }
+.rates .head span { color: var(--muted); }
+.rates .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.rates .k { font-size: 0.8rem; color: var(--muted); }
+.rates .v { font: 500 1.6rem var(--mono); font-variant-numeric: tabular-nums; }
+.rates .note { font-size: 0.8rem; color: var(--muted); margin: 12px 0 0; }
+.rates .none { color: var(--muted); margin: 0; }
+#riskOut .none { color: var(--muted); margin: 0; }
+#riskOut .head { margin: 0 0 12px; font-size: 0.95rem; overflow-wrap: anywhere; }
+#riskOut .head span { color: var(--muted); }
+.riskwrap { overflow-x: auto; }
+table.rr { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+table.rr th { text-align: left; font-weight: 600; font-size: 0.8rem; color: var(--muted); padding: 6px 14px 6px 0; border-bottom: 1.5px solid var(--fg); white-space: nowrap; }
+table.rr td { padding: 10px 14px 10px 0; border-bottom: 1px dashed var(--dash); font-variant-numeric: tabular-nums; white-space: nowrap; }
+table.rr td:first-child { font-weight: 600; }
+table.rr td.hi { font-family: var(--mono); font-weight: 500; }
+#riskOut .note { font-size: 0.8rem; color: var(--notice-fg); background: var(--notice-bg); border-radius: 4px; padding: 10px 12px; margin: 14px 0 0; }
+.btn-link {
+  display: inline-block; background: var(--gold); color: var(--gold-fg);
+  border-radius: 999px; font-weight: 600; padding: 11px 24px; text-decoration: none; cursor: pointer;
+}
+.btn-link:hover { filter: brightness(1.08); }
+.btn-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.btn-link.off { opacity: 0.4; cursor: not-allowed; pointer-events: none; }
+#h-explore + .btn-link { margin-top: 0; }
+</style>
+
+<main>
+  <h1>Critical Care to Blood Draw Interval</h1>
+
+  <section class="box" aria-labelledby="h-interval">
+  <h2 id="h-interval">Enter the interval</h2>
+
+  <div class="tabs" role="tablist" aria-label="How to enter the interval">
+    <button class="tab" id="tab-manual" role="tab" aria-selected="true" aria-controls="panel-manual" type="button">Enter interval</button>
+    <button class="tab" id="tab-calc" role="tab" aria-selected="false" aria-controls="panel-calc" tabindex="-1" type="button">Calculate from dates</button>
+  </div>
+
+  <div id="panel-manual" role="tabpanel" aria-labelledby="tab-manual">
+    <div class="row">
+      <div class="col">
+        <label for="days">Days</label>
+        <input id="days" type="text" inputmode="numeric" autocomplete="off" value="5" placeholder="0">
+      </div>
+      <div class="col">
+        <label for="time">Time (hh:mm)</label>
+        <input id="time" type="text" inputmode="numeric" autocomplete="off" value="12:00" placeholder="00:00">
+        <p class="hint">Type 12 or 12:30. Max 23:59.</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="panel-calc" role="tabpanel" aria-labelledby="tab-calc" hidden>
+    <div class="stack">
+      <div>
+        <label for="start">Start date and time</label>
+        <input id="start" type="datetime-local">
+      </div>
+      <div>
+        <label for="end">End date and time</label>
+        <input id="end" type="datetime-local">
+      </div>
+    </div>
+  </div>
+
+  <p class="result" id="result" aria-live="polite"></p>
+  </section>
+
+  <section class="box" aria-labelledby="h-pick">
+  <h2 id="h-pick">Pick a risk behaviour</h2>
+  <div class="seg-wrap"><span class="seg-label" id="countryLabel">Nation</span>
+    <div class="seg" id="countrySeg" role="group" aria-labelledby="countryLabel">
+      <button type="button" data-country="Australia" aria-pressed="true">Australia</button>
+      <button type="button" data-country="USA" aria-pressed="false">USA</button>
+    </div>
+  </div>
+  <div class="pickgrid" id="pickGrid" role="group" aria-label="Pick one risk behaviour"></div>
+  <p class="picktext empty" id="pickText" aria-live="polite">Tap an icon to pick one behaviour.</p>
+  <div class="rates" id="rates" aria-live="polite" hidden></div>
+  </section>
+
+  <section class="box" aria-labelledby="h-risk">
+  <h2 id="h-risk">Estimated residual risk of undetected infection</h2>
+  <div id="riskOut" aria-live="polite"><p class="none">Pick a risk behaviour to see the residual risk for this interval.</p></div>
+  </section>
+
+  <section class="box" aria-labelledby="h-explore">
+  <h2 id="h-explore">Explore further</h2>
+  <a class="btn-link off" id="exploreBtn" target="_blank" rel="noopener noreferrer" aria-disabled="true">Explore and contextualise these residual risks</a>
+  <p class="hint" id="exploreHint"></p>
+  </section>
+</main>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var daysEl = $("days"), timeEl = $("time"), startEl = $("start"), endEl = $("end");
+  var resultEl = $("result");
+  var tabManual = $("tab-manual"), tabCalc = $("tab-calc");
+  var mode = "manual";
+
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+  function localStr(d) {
+    return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()) + "T" + pad(d.getHours()) + ":" + pad(d.getMinutes());
+  }
+
+  /* Example dates so the calculator opens with a result: today 09:00 to 5.5 days later. */
+  var s = new Date(); s.setHours(9, 0, 0, 0);
+  var e = new Date(s.getTime() + 5.5 * 86400000);
+  startEl.value = localStr(s);
+  endEl.value = localStr(e);
+
+  function parseDays(t) {
+    t = t.trim();
+    if (t === "") return { v: 0 };
+    if (!/^\d{1,5}$/.test(t)) return { err: "Days must be a whole number." };
+    return { v: parseInt(t, 10) };
+  }
+  function parseTime(t) {
+    t = t.trim();
+    if (t === "") return { h: 0, m: 0 };
+    var m = /^(\d{1,2})(?::(\d{1,2}))?$/.exec(t);
+    if (!m) return { err: "Time must look like 12 or 12:30." };
+    var h = parseInt(m[1], 10), min = m[2] === undefined ? 0 : parseInt(m[2], 10);
+    if (h > 23 || min > 59) return { err: "Time must be between 00:00 and 23:59." };
+    return { h: h, m: min };
+  }
+
+  function dec(d, h, m) { return Math.round((d + (h * 60 + m) / 1440) * 10000) / 10000; }
+  function text(d, h, m) { return d + (d === 1 ? " day " : " days ") + pad(h) + ":" + pad(m); }
+
+  function fromManual() {
+    var d = parseDays(daysEl.value), t = parseTime(timeEl.value);
+    daysEl.classList.toggle("bad", !!d.err);
+    timeEl.classList.toggle("bad", !!t.err);
+    if (d.err || t.err) return { err: d.err || t.err };
+    return { d: d.v, h: t.h, m: t.m };
+  }
+
+  function fromDates() {
+    if (!startEl.value || !endEl.value) return { err: "Enter both a start and an end date and time." };
+    var a = new Date(startEl.value).getTime(), b = new Date(endEl.value).getTime();
+    if (isNaN(a) || isNaN(b)) return { err: "Enter both a start and an end date and time." };
+    if (b < a) return { err: "The end must be after the start." };
+    var total = Math.round((b - a) / 60000);
+    var d = Math.floor(total / 1440), rem = total - d * 1440;
+    return { d: d, h: Math.floor(rem / 60), m: rem % 60 };
+  }
+
+  function current() {
+    var c = mode === "calc" ? fromDates() : fromManual();
+    if (!c.err && c.d === 0 && c.h === 0 && c.m === 0) return { err: "Enter at least some time." };
+    return c;
+  }
+
+  function update() {
+    var c = current();
+    updateRisk(c);
+    resultEl.classList.toggle("err", !!c.err);
+    if (c.err) { resultEl.textContent = c.err; return; }
+    resultEl.textContent = text(c.d, c.h, c.m) + " = " + dec(c.d, c.h, c.m) + " days";
+    if (mode === "calc") {
+      daysEl.value = String(c.d);
+      timeEl.value = pad(c.h) + ":" + pad(c.m);
+      daysEl.classList.remove("bad"); timeEl.classList.remove("bad");
+    }
+  }
+
+  function setMode(next, focus) {
+    mode = next;
+    var calc = next === "calc";
+    tabManual.setAttribute("aria-selected", String(!calc));
+    tabCalc.setAttribute("aria-selected", String(calc));
+    tabManual.tabIndex = calc ? -1 : 0;
+    tabCalc.tabIndex = calc ? 0 : -1;
+    $("panel-manual").hidden = calc;
+    $("panel-calc").hidden = !calc;
+    if (focus) (calc ? tabCalc : tabManual).focus();
+    update();
+  }
+
+  tabManual.addEventListener("click", function () { setMode("manual"); });
+  tabCalc.addEventListener("click", function () { setMode("calc"); });
+  [tabManual, tabCalc].forEach(function (t) {
+    t.addEventListener("keydown", function (ev) {
+      if (ev.key === "ArrowRight" || ev.key === "ArrowLeft") {
+        setMode(mode === "manual" ? "calc" : "manual", true);
+      }
+    });
+  });
+
+  [daysEl, timeEl, startEl, endEl].forEach(function (el) {
+    el.addEventListener("input", update);
+    el.addEventListener("change", update);
+  });
+
+  /* Increased-risk behaviour table: icon toggle buttons. */
+  var S = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">';
+  var RISKS = [
+    { label: "Non-medical injecting drug use (intravenous, intramuscular or subcutaneous)",
+      icon: S + '<g transform="rotate(45 12 12)"><rect x="9" y="6" width="6" height="10" rx="1"/><line x1="7.5" y1="6" x2="16.5" y2="6"/><line x1="12" y1="6" x2="12" y2="2.5"/><line x1="9.5" y1="2.5" x2="14.5" y2="2.5"/><line x1="12" y1="16" x2="12" y2="21"/><line x1="9" y1="9" x2="11" y2="9"/><line x1="9" y1="12" x2="11" y2="12"/></g></svg>' },
+    { label: "Sex between men",
+      icon: S + '<circle cx="7" cy="16.5" r="2.75"/><line x1="9" y1="14.5" x2="12" y2="11.5"/><polyline points="9.5 11.5 12 11.5 12 14"/><circle cx="15" cy="16.5" r="2.75"/><line x1="17" y1="14.5" x2="20" y2="11.5"/><polyline points="17.5 11.5 20 11.5 20 14"/></svg>' },
+    { label: "Lockup, jail, prison or juvenile detention for more than 72 consecutive hours",
+      icon: S + '<rect x="4" y="4" width="16" height="16" rx="2"/><line x1="8.5" y1="4" x2="8.5" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/><line x1="15.5" y1="4" x2="15.5" y2="20"/></svg>' },
+    { label: "Sex in exchange for money or drugs",
+      icon: S + '<circle cx="12" cy="12" r="8.5"/><text x="12" y="16.2" text-anchor="middle" font-family="system-ui, sans-serif" font-size="11.5" font-weight="700" fill="currentColor" stroke="none">$</text></svg>' },
+    { label: "Sex with a person in any of the groups above",
+      icon: S + '<circle cx="8.5" cy="12" r="5"/><circle cx="15.5" cy="12" r="5"/></svg>' },
+    { label: "Recent diagnosis of, or treatment for, syphilis, gonorrhoea, chlamydia or genital ulcers",
+      icon: S + '<g transform="rotate(-45 12 12)"><rect x="3" y="8" width="18" height="8" rx="4"/><line x1="12" y1="8" x2="12" y2="16"/></g></svg>' },
+    { label: "Child aged 18 months or younger born to a mother known to be infected with, or at increased risk of, HIV, HBV or HCV",
+      icon: S + '<circle cx="12" cy="8" r="3.5"/><path d="M5.5 20.5c0-4 3-6.5 6.5-6.5s6.5 2.5 6.5 6.5z"/></svg>' },
+    { label: "Child breastfed in the preceding 6 months, where the mother is known to be infected with, or at increased risk of, HIV, HBV or HCV",
+      icon: S + '<path d="M12 3.5C12 3.5 5.5 10.5 5.5 14.5a6.5 6.5 0 0 0 13 0C18.5 10.5 12 3.5 12 3.5z"/></svg>' }
+  ];
+  /* Incidence per 100 person-years, Australia. Source: TSANZ Clinical Guidelines v1.18 (Oct 2026), Table 2.4. */
+  /* One entry per icon, in icon order (null = no rate in that country's source). The HBcAb slot holds the
+     HBcAb rate for Australia and the HBV rate for the USA. "approx" marks a figure that is not measured: the
+     source says the group is approximate to, or no higher than, another group, so that group's rate is used. */
+  var country = "Australia";
+  var HBV_LABEL = { Australia: "HBcAb", USA: "HBV" };
+  var SOURCE = {
+    Australia: "TSANZ Clinical Guidelines v1.18, Table 2.4. HBcAb is estimated from prevalence.",
+    USA: "Jones et al., Am J Transplant 2019;19:2583-2593, Table 1."
+  };
+  var ALLK = { HIV: 1, HCV: 1, HBcAb: 1 };
+  var DATA = {
+    Australia: [
+      { group: "Intravenous drug use",       HIV: 0.16, HCV: 17.5, HBcAb: 8.1 },
+      { group: "Men who have sex with men",  HIV: 1.03, HCV: 1.3,  HBcAb: 1.9 },
+      { group: "Prisoners",                  HIV: 0.03, HCV: 11.9, HBcAb: 3.5 },
+      { group: "Commercial sex workers",     HIV: 0.05, HCV: 4.5,  HBcAb: 0.4 },
+      { group: "Increased risk partners",    HIV: 0.03, HCV: 5.6,  HBcAb: 0.2 },
+      null, null, null
+    ],
+    USA: [
+      { group: "People who inject drugs",                 HIV: 0.34, HCV: 24,   HBcAb: 0.78, approx: { HBcAb: 1 } },
+      { group: "Men who have sex with men",               HIV: 0.56, HCV: 0.05, HBcAb: 0.78 },
+      { group: "In lockup, jail or prison over 72 hours", HIV: 0.56, HCV: 0.4,  HBcAb: 0.78, approx: { HIV: 1, HBcAb: 1 } },
+      { group: "Sex in exchange for money or drugs",      HIV: 0.34, HCV: 0.05, HBcAb: 0.78, approx: ALLK },
+      { group: "Sex with a person in these groups",       HIV: 0.56, HCV: 0.05, HBcAb: 0.78, approx: ALLK },
+      { group: "Recent sexually transmitted infection",   HIV: 0.56, HCV: 0.05, HBcAb: 0.78, approx: ALLK },
+      null, null
+    ]
+  };
+  var ratesEl = $("rates");
+  function showRates(i) {
+    var r = DATA[country][i] || null;
+    ratesEl.hidden = false;
+    if (!r) {
+      ratesEl.innerHTML = '<p class="none">No incidence rate for this behaviour in the ' + country + ' source.</p>';
+      return;
+    }
+    var cells = [["HIV", "HIV"], ["HCV", "HCV"], ["HBcAb", HBV_LABEL[country]]].map(function (k) {
+      var star = r.approx && r.approx[k[0]] ? "*" : "";
+      return '<div><div class="k">' + k[1] + '</div><div class="v">' + r[k[0]] + star + '</div></div>';
+    }).join("");
+    ratesEl.innerHTML =
+      '<p class="head">' + country + ' &middot; ' + r.group + ' <span>(incidence per 100 person-years)</span></p>' +
+      '<div class="grid">' + cells + '</div>' +
+      '<p class="note">' + SOURCE[country] + (r.approx ? ' * Not a measured rate: the source says this group is approximate to, or no higher than, another group, so that group\'s rate is used.' : '') + '</p>';
+  }
+
+  /* Quarantine-adjusted window period model (Dutch, Maillardet, Knott. Transplantation Direct 2025;11:e1843).
+     Detection probability D(t) is lognormal with X50/X95 limits of detection (copies/mL, converted from IU/mL),
+     exponential viral growth from 1 virion in 4600 mL plasma, and no new infection during the critical care interval h.
+     QR(h) = integral from h to infinity of [1 - D(t)] dt (days). Risk = 1 - exp(-lambda * QR). */
+  var C0 = 1 / 4600;
+  var VIRUS = {
+    HIV: { r: 0.85, x50: 5.4 * 0.6, x95: 18.0 * 0.6 },
+    HCV: { r: 0.45, x50: 0.9 * 3.4, x95: 3.0 * 3.4 },
+    HBV: { r: 2.56, x50: 0.9 * 5,   x95: 4.3 * 5 }
+  };
+  function erfcc(x) {
+    var z = Math.abs(x), t = 1 / (1 + 0.5 * z);
+    var r = t * Math.exp(-z * z - 1.26551223 + t * (1.00002368 + t * (0.37409196 + t * (0.09678418 + t * (-0.18628806 + t * (0.27886807 + t * (-1.13520398 + t * (1.48851587 + t * (-0.82215223 + t * 0.17087277)))))))));
+    return x >= 0 ? r : 2 - r;
+  }
+  function Phi(z) { return 0.5 * erfcc(-z / Math.SQRT2); }
+  function makeModel(v) {
+    var mu = Math.log(v.x50), sg = (Math.log(v.x95) - mu) / 1.645, b = Math.LN2 / v.r;
+    var tmax = (mu + 10 * sg - Math.log(C0)) / b;
+    function notDetected(t) { return 1 - Phi((Math.log(C0) + b * t - mu) / sg); }
+    return function QR(h) {
+      if (h >= tmax) return 0;
+      var n = 2000, step = (tmax - h) / n, s = notDetected(h) + notDetected(tmax);
+      for (var i = 1; i < n; i++) s += notDetected(h + i * step) * (i % 2 ? 4 : 2);
+      return s * step / 3;
+    };
+  }
+  var QR_FN = {};
+  Object.keys(VIRUS).forEach(function (k) { QR_FN[k] = makeModel(VIRUS[k]); });
+
+  function oneIn(p) {
+    if (!(p > 0)) return "no risk";
+    var n = Math.round(1 / p);
+    if (n >= 10000000) return "less than 1 in 10,000,000";
+    return "1 in " + n.toLocaleString("en-AU");
+  }
+
+  var selectedIdx = null;
+  var riskOut = $("riskOut");
+
+  /* Incidence rates supplied in the page address: hivinc, hcvinc, hbvinc (per 100 person-years).
+     Read from the query string (works when the page is hosted on its own) and from the address fragment
+     in the form #hbvinc-8.1_hcvinc-17.5_hivinc-0.16 (the only form a hosted artifact page can receive).
+     All three must be valid numbers; otherwise they are ignored and the TSANZ table is used. */
+  var INJECT_KEYS = ["hivinc", "hcvinc", "hbvinc"];
+  function readInjected() {
+    var found = {}, seen = false;
+    function take(name, raw) {
+      name = String(name).toLowerCase();
+      if (INJECT_KEYS.indexOf(name) === -1) return;
+      seen = true;
+      var s = String(raw).trim();
+      if (/^(\d+\.?\d*|\.\d+)$/.test(s)) found[name] = parseFloat(s);
+    }
+    try {
+      var qs = new URLSearchParams(window.location.search);
+      INJECT_KEYS.forEach(function (k) { if (qs.has(k)) take(k, qs.get(k)); });
+    } catch (e) {}
+    try {
+      var hash = (window.location.hash || "").replace(/^#/, "");
+      hash.split("_").forEach(function (part) {
+        var i = part.indexOf("-");
+        if (i > 0) take(part.slice(0, i), part.slice(i + 1));
+      });
+    } catch (e) {}
+    var ok = INJECT_KEYS.every(function (k) { return found.hasOwnProperty(k); });
+    return { values: ok ? { HIV: found.hivinc, HCV: found.hcvinc, HBcAb: found.hbvinc } : null, partial: seen && !ok };
+  }
+  var INJ = readInjected();
+  var INJECTED = INJ.values;
+
+  /* Page opened by the explore button (Donor Infection Risk in Context). It reads the risks from the address
+     fragment in the form #hbv-N_hcv-N_hiv-N, where N is the N in "1 in N", and locks each one it receives.
+     An infection whose residual risk is zero is left out, and that tab stays editable on the destination page. */
+  var EXPLORE_URL = "https://martindutch76.github.io/WMR_V2/visualise.html";
+  var EXPLORE_KEYS = [["hbvrr", "hbv", "HBV"], ["hcvrr", "hcv", "HCV"], ["hivrr", "hiv", "HIV"]];
+  var lastN = null;
+  function updateExplore() {
+    var btn = $("exploreBtn"), hint = $("exploreHint");
+    var sent = lastN ? EXPLORE_KEYS.filter(function (k) { return lastN[k[0]]; }) : [];
+    function off(msg) {
+      btn.removeAttribute("href"); btn.setAttribute("aria-disabled", "true"); btn.classList.add("off");
+      hint.textContent = msg;
+    }
+    if (!EXPLORE_URL) {
+      off("The destination page has not been set yet.");
+    } else if (!sent.length) {
+      off(lastN ? "No residual risk remains for this interval and behaviour, so there is nothing to send." : "Enter a valid interval and pick a behaviour with an incidence rate first.");
+    } else {
+      var frag = sent.map(function (k) { return k[1] + "-" + lastN[k[0]]; }).join("_");
+      btn.href = EXPLORE_URL.split("#")[0] + "#" + frag;
+      btn.removeAttribute("aria-disabled"); btn.classList.remove("off");
+      var left = EXPLORE_KEYS.filter(function (k) { return !lastN[k[0]]; }).map(function (k) { return k[2]; });
+      hint.textContent = "Opens in a new tab with the residual risks filled in." + (left.length ? " " + left.join(" and ") + " has no residual risk here, so it is left for you to enter." : "");
+    }
+  }
+  function updateRisk(c) { lastN = null; renderRisk(c); updateExplore(); }
+  function renderRisk(c) {
+    var g, rates;
+    if (INJECTED) {
+      g = "Incidence rates from the page address";
+      rates = INJECTED;
+    } else {
+      if (selectedIdx === null) {
+        riskOut.innerHTML = '<p class="none">Pick a risk behaviour to see the residual risk for this interval.</p>';
+        return;
+      }
+      rates = DATA[country][selectedIdx];
+      if (!rates) {
+        riskOut.innerHTML = '<p class="none">There is no incidence rate for this behaviour in the ' + country + ' source, so residual risk cannot be calculated.</p>';
+        return;
+      }
+      g = country + " · " + rates.group;
+    }
+    if (c.err) {
+      riskOut.innerHTML = '<p class="none">Enter a valid interval above to see the residual risk.</p>';
+      return;
+    }
+    var h = c.d + (c.h * 60 + c.m) / 1440;
+    var ns = {};
+    var rows = [["HIV", rates.HIV], ["HCV", rates.HCV], ["HBV", rates.HBcAb]].map(function (x) {
+      var lambda = x[1] / 100 / 365;
+      var qr = QR_FN[x[0]];
+      var adj = 1 - Math.exp(-lambda * qr(h));
+      if (adj > 0) ns[x[0].toLowerCase() + "rr"] = Math.round(1 / adj);
+      return '<tr><td>' + x[0] + '</td><td class="hi">' + oneIn(adj) + '</td></tr>';
+    }).join("");
+    lastN = ns;
+    riskOut.innerHTML =
+      '<p class="head">Interval ' + text(c.d, c.h, c.m) + ' <span>(' + dec(c.d, c.h, c.m) + ' days)</span> &middot; ' + g + '</p>' +
+      '<div class="riskwrap"><table class="rr"><thead><tr><th scope="col">Virus</th><th scope="col">With this interval</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+      '<p class="note">Residual risk that a donor in this group has an infection that screening misses. Based on the quarantine-adjusted window period model (Dutch, Maillardet and Knott, Transplantation Direct 2025), which assumes no new infection during the critical care interval. ' + (INJECTED ? 'Incidence rates were supplied in the page address.' : 'Incidence is the ' + (country === "USA" ? 'US (Jones et al. 2019)' : 'TSANZ v1.18') + ' rate for the selected group.') + (country === "Australia" || INJECTED ? ' HBV uses the HBcAb rate.' : '') + ' This is an estimate, not clinical advice.</p>';
+  }
+
+  /* Single pick: choosing one icon clears the others. */
+  var pickGrid = $("pickGrid"), pickText = $("pickText");
+  RISKS.forEach(function (r, idx) {
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "icon-btn";
+    btn.setAttribute("aria-pressed", "false");
+    btn.setAttribute("aria-label", r.label);
+    btn.innerHTML = '<span class="off">' + r.icon + '</span><span class="on">' + r.icon + '</span>';
+    btn.addEventListener("click", function () {
+      var all = pickGrid.querySelectorAll("button");
+      for (var i = 0; i < all.length; i++) all[i].setAttribute("aria-pressed", "false");
+      btn.setAttribute("aria-pressed", "true");
+      pickText.textContent = r.label;
+      pickText.classList.remove("empty");
+      showRates(idx);
+      selectedIdx = idx;
+      update();
+    });
+    pickGrid.appendChild(btn);
+  });
+
+  /* Country selector */
+  var segBtns = document.querySelectorAll("#countrySeg button");
+  Array.prototype.forEach.call(segBtns, function (b) {
+    if (INJECTED) b.disabled = true;
+    b.addEventListener("click", function () {
+      country = b.getAttribute("data-country");
+      Array.prototype.forEach.call(segBtns, function (o) {
+        o.setAttribute("aria-pressed", o === b ? "true" : "false");
+      });
+      if (selectedIdx !== null) showRates(selectedIdx);
+      update();
+    });
+  });
+
+  if (INJECTED) {
+    var pbtns = pickGrid.querySelectorAll("button");
+    for (var pi = 0; pi < pbtns.length; pi++) pbtns[pi].disabled = true;
+    pickText.textContent = "Incidence rates were supplied in the page address, so no behaviour needs to be picked.";
+    pickText.classList.add("empty");
+    ratesEl.hidden = false;
+    ratesEl.innerHTML =
+      '<p class="head">Incidence rates from the page address <span>(per 100 person-years)</span></p>' +
+      '<div class="grid">' + ["HIV", "HCV", "HBcAb"].map(function (k) {
+        return '<div><div class="k">' + k + '</div><div class="v">' + INJECTED[k] + '</div></div>';
+      }).join("") + '</div>';
+  } else if (INJ.partial) {
+    ratesEl.hidden = false;
+    ratesEl.innerHTML = '<p class="none">The incidence values in the page address were incomplete or not numbers, so the TSANZ table is being used.</p>';
+  }
+
+  update();
+})();
+</script>
+
+</body></html>
